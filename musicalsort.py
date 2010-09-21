@@ -1,24 +1,47 @@
 from __future__ import division
 from functools import wraps
 from random import shuffle
+import platform
 
 DEFAULT_DURATION = .05    # in seconds
 BASE_FREQUENCY = 200      # A = 440 hz
 MAXIMUM_FREQUENCY = 2000
 
-def _sound_setup(sound_lib):
-    global play_sound
+class NoAudioLibraryFound(Exception):
+    def __str__(self):
+        if platform.system() == "Windows":
+            return "winsound module not found. Check your python distribution!"
+        else:
+            return "No audio library found. pyAudiere is recommended."""
 
-    if sound_lib == "winsound":
-        def play_sound(frequency, duration=DEFAULT_DURATION):
-            winsound.Beep(frequency, 100 * duration)
-    elif sound_lib == "audiere":
+# Set up tone producing (First try winsound -> pyAudiere -> tkSnack)
+try:
+    # windows
+    import winsound
+except ImportError:
+    try:
+        import audiere
+    except ImportError:
+        try:
+            import Tkinter
+            import tkSnack
+        except ImportError:
+            raise NoAudioLibraryFound()
+        else:
+            root = Tkinter.Tk()
+            tkSnack.initializeSnack(root)
+
+            def _play_sound(frequency, duration):
+                sound = tkSnack.Sound()
+                filter = tkSnack.Filter('generator', frequency, 30000, 0.0,
+                                         'sine', int(11500 * duration))
+                sound.stop()
+                sound.play(filter=filter, blocking=1)
+    else:
         import time
-        global dev
-
         dev = audiere.open_device()
 
-        def play_sound(frequency, duration=DEFAULT_DURATION):
+        def _play_sound(frequency, duration):
             tone = dev.create_tone(frequency)
             tone.pan = 0
             try:
@@ -29,44 +52,12 @@ def _sound_setup(sound_lib):
             except KeyboardInterrupt:
                 tone.stop()
                 raise KeyboardInterrupt
-    elif sound_lib == "tkSnack":
-        root = Tkinter.Tk()
-        tkSnack.initializeSnack(root)
+else:
+    def _play_sound(frequency, duration):
+        winsound.Beep(frequency, duration * 1000)
 
-        def play_sound(frequency, duration=DEFAULT_DURATION):
-            sound = tkSnack.Sound()
-            filter = tkSnack.Filter('generator', frequency, 30000, 0.0, 'sine',
-                                    int(11500 * duration)) # int not float
-            sound.stop()
-            sound.play(filter=filter, blocking=1)
-
-class NoAudioLibraryFound(Exception):
-    pass
-
-try:
-    # windows
-    import winsound
-    _sound_setup("winsound")
-except ImportError:
-    try:
-        import audiere
-        _sound_setup("audiere")
-    except ImportError:
-        try:
-            import Tkinter
-            import tkSnack
-            _sound_setup("tkSnack")
-        except ImportError:
-            import platform
-
-            if platform.system() == "Windows":
-                raise NoAudioLibraryFound(
-                        "winsound not found. Check your python distribution!")
-            else:
-                raise NoAudioLibraryFound("""\
-                No audio library found. The recommended library is pyAudiere.
-
-                You will need to download it to hear the tones.""")
+def play_sound(frequency, duration=DEFAULT_DURATION):
+    return _play_sound(int(frequency), duration)
 
 def play_note(interval, duration=DEFAULT_DURATION):
     """
