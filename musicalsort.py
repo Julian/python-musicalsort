@@ -54,7 +54,7 @@ except ImportError:
                 raise KeyboardInterrupt
 else:
     def _play_sound(frequency, duration):
-        winsound.Beep(frequency, duration * 1000)
+        winsound.Beep(frequency, int(duration * 1000))
 
 def play_sound(frequency, duration=DEFAULT_DURATION):
     return _play_sound(int(frequency), duration)
@@ -75,9 +75,9 @@ def scaled_play(length, min_freq=BASE_FREQUENCY, max_freq=MAXIMUM_FREQUENCY):
     the sortable within the interval (e.g. a list of length 20 will divide the
     interval from BASE_FREQUENCY to MAXIMUM_FREQUENCY into 20 intervals).
     """
-    interval_length = (MAXIMUM_FREQUENCY - BASE_FREQUENCY) / length
+    interval_length = (MAXIMUM_FREQUENCY - BASE_FREQUENCY) // length
     def play_note(interval, duration=DEFAULT_DURATION):
-        frequency = interval * interval_length
+        frequency = BASE_FREQUENCY + interval * interval_length
         return play_sound(frequency, duration)
     return play_note
 
