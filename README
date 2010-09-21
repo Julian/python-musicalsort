@@ -1,0 +1,5 @@
+Known Issues:
+    Somewhat slow on *nix with pyAudiere, painfully slow with tkSnack
+    Need to catch KeyboardInterrupt when playing to make sure the device has
+        stopped with audiere. For now, you can just do anything at all to
+        `musicalsort.dev` and it should stop it.
