@@ -3,3 +3,21 @@ Known Issues:
     Need to catch KeyboardInterrupt when playing to make sure the device has
         stopped with audiere. For now, you can just do anything at all to
         `musicalsort.dev` and it should stop it.
+
+
+Requirements:
+    Windows:
+        Good out of the box.
+    *nix:
+        pyAudiere (very much recommended) or tkSnack
+        
+
+pyAudiere Install Directions:
+    - Install Audiere with your package manager or from OSX from source
+        (or check if there's a binary). For ubuntu, aptitude install
+        libaudiere-1.9.4 and the dev package.
+    - Get pyAudiere source from http://www.pyaudiere.org/
+    - Get Audiere source from http://sourceforge.net/projects/audiere/files/
+        You want audiere-1.9.4-src.tar.bz2
+
+    Follow the instructions at the pyAudiere website to build and then install.
