@@ -21,9 +21,14 @@ def _sound_setup(sound_lib):
         def play_sound(frequency, duration=DEFAULT_DURATION):
             tone = dev.create_tone(frequency)
             tone.pan = 0
-            tone.play()
-            time.sleep(duration) # TODO: there has to be a way to spec duration
-            tone.stop()
+            try:
+                tone.play()
+                time.sleep(duration)
+                # TODO: there has to be a way to spec duration without sleep()
+                tone.stop()
+            except KeyboardInterrupt:
+                tone.stop()
+                raise KeyboardInterrupt
     elif sound_lib == "tkSnack":
         root = Tkinter.Tk()
         tkSnack.initializeSnack(root)
