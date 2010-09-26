@@ -1,7 +1,9 @@
 from __future__ import division
 from functools import wraps
 from random import shuffle
+
 import platform
+import collections
 
 DEFAULT_DURATION = .05    # in seconds
 BASE_FREQUENCY = 200      # A = 440 hz
@@ -75,28 +77,65 @@ def scaled_play(length, min_freq=BASE_FREQUENCY, max_freq=MAXIMUM_FREQUENCY):
     the sortable within the interval (e.g. a list of length 20 will divide the
     interval from BASE_FREQUENCY to MAXIMUM_FREQUENCY into 20 intervals).
     """
-    interval_length = (MAXIMUM_FREQUENCY - BASE_FREQUENCY) // length
+    try:
+        interval_length = (max_freq - min_freq) // length
+    except ZeroDivisionError:
+        interval_length = max_freq - min_freq
     def play_note(interval, duration=DEFAULT_DURATION):
-        frequency = BASE_FREQUENCY + interval * interval_length
+        frequency = min_freq + interval * interval_length
         return play_sound(frequency, duration)
     return play_note
 
-class MusicalSortable(list):
+class MusicalSortable(collections.MutableSequence):
+    def __init__(self, *args):
+        self.list = []
+        self.extend(list(*args))
+
+    def __len__(self):
+        return len(self.list)
+
+    def __getitem__(self, i):
+        return self.list[i]
+
+    def __delitem__(self, i):
+        del self.list[i]
+
     def __setitem__(self, index, new_value):
         self.pre_assignment(index, new_value)
-        super(MusicalSortable, self).__setitem__(index, new_value)
+        self.list[index] = new_value
         self.post_assignment(index, new_value)
 
+    def __repr__(self):
+        return repr(self.list)
+
+    def __str__(self):
+        return str(self.list)
+
+    def insert(self, index, value):
+        self.pre_insertion(index, value)
+        self.list.insert(index, value)
+        self.post_insertion(index, value)
+
+    def pre_insertion(self, index, value):
+        self.scaled_play(index)
+        self.scaled_play(value)
+
+    def post_insertion(self, index, value):
+        pass
+
     def pre_assignment(self, index, value):
-        scaled_play(len(self))(index)
-        scaled_play(len(self))(value)
+        self.scaled_play(index)
+        self.scaled_play(value)
         # play_note(index)
         # play_note(value)
 
     def post_assignment(self, index, value):
         pass
 
-def musical(sort):
+    def scaled_play(self, *args, **kwargs):
+        return scaled_play(len(self))(*args, **kwargs)
+
+def musical(sort_fn):
     """
     Does automatic musical sorting for any sort that takes a sortable as its
     first parameter.
@@ -104,15 +143,17 @@ def musical(sort):
     For any other sort, you will need to manually create a MusicalSortable class
     object from your sortable object.
     """
-    @wraps(sort)
+    @wraps(sort_fn)
     def musical_sorter(sortable, *args, **kwargs):
         s = MusicalSortable(sortable)
-        sorted = sort(s, *args, **kwargs)
+        sorted = sort_fn(s, *args, **kwargs)
         if sorted:
             # not an in place sort?
             return sorted
         return s
     return musical_sorter
+
+### Sample Sorts
 
 @musical
 def selection_sort(sortable):
@@ -132,6 +173,26 @@ def insertion_sort(sortable):
             sortable[j + 1] = sortable[j]
             j -= 1
         sortable[j + 1] = key
+
+def _merge(left, right):
+    merged = MusicalSortable()
+    while left and right:
+        if left[0] < right[0]:
+            merged.append(left.pop(0))
+        else:
+            merged.append(right.pop(0))
+    # one of them is empty, so just extend till they both are
+    merged.extend(left)
+    merged.extend(right)
+    return merged
+
+@musical
+def merge_sort(sortable):
+    if len(sortable) < 2:
+        return sortable
+    middle = len(sortable) // 2
+    left, right = merge_sort(sortable[:middle]), merge_sort(sortable[middle:])
+    return _merge(left, right)
 
 def _partition(sortable, pivot=None):
     raise NotImplementedError("Doesn't work yet!")
