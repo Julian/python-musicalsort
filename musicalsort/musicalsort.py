@@ -44,6 +44,10 @@ except ImportError:
         dev = audiere.open_device()
 
         def _play_sound(frequency, duration):
+            """
+            Just a bit more complicated. We need to make sure our tone has
+            stopped playing if execution is interrupted.
+            """
             tone = dev.create_tone(frequency)
             tone.pan = 0
             try:
@@ -56,6 +60,11 @@ except ImportError:
                 raise KeyboardInterrupt
 else:
     def _play_sound(frequency, duration):
+        """
+        winsound seems the easiest of the bunch to do simple tone outputting,
+        but its duration expects time in milliseconds, so we take that into
+        account.
+        """
         winsound.Beep(frequency, int(duration * 1000))
 
 def play_sound(frequency, duration=DEFAULT_DURATION):
@@ -77,6 +86,7 @@ def scaled_play(length, min_freq=BASE_FREQUENCY, max_freq=MAXIMUM_FREQUENCY):
     the sortable within the interval (e.g. a list of length 20 will divide the
     interval from BASE_FREQUENCY to MAXIMUM_FREQUENCY into 20 intervals).
     """
+    # TODO: get rid of the closure, or provide an alternative
     try:
         interval_length = (max_freq - min_freq) // length
     except ZeroDivisionError:
@@ -87,6 +97,24 @@ def scaled_play(length, min_freq=BASE_FREQUENCY, max_freq=MAXIMUM_FREQUENCY):
     return play_note
 
 class MusicalSortable(collections.MutableSequence):
+    """
+    Where the magic happens.
+
+    All this class does is basically just wraps insertion and assignment with
+    arbitrary method calls before and after.
+
+    You can do whatever you'd like. Just redefine `pre_assignment` and
+    `post_assignment` to affect assigns, and `pre_insertion` and
+    `post_insertion` for inserts (and everything else that is implemented via
+    each. See _abcoll.py). If for any reason you need to bypass your method,
+    you can access the internal list via `self.data` on your instance (à la
+    `collections`).
+
+    The only other out-of-the-box method that you get at the moment is
+    scaled_play, which is slow because it has to check len(self) and get a new
+    function from the factory each time, but basically scales your frequency
+    range to the len of your list.
+    """
     def __init__(self, *args):
         # we don't want to call our musical methods on __init__
         self.data = list(*args)
