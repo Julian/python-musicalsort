@@ -88,42 +88,53 @@ def scaled_play(length, min_freq=BASE_FREQUENCY, max_freq=MAXIMUM_FREQUENCY):
 
 class MusicalSortable(collections.MutableSequence):
     def __init__(self, *args):
-        self.list = []
-        self.extend(list(*args))
+        # we don't want to call our musical methods on __init__
+        self.data = list(*args)
 
     def __len__(self):
-        return len(self.list)
+        return len(self.data)
 
     def __getitem__(self, i):
-        return self.list[i]
+        return self.data[i]
 
     def __delitem__(self, i):
-        del self.list[i]
+        del self.data[i]
 
-    def __setitem__(self, index, new_value):
-        self.pre_assignment(index, new_value)
-        self.list[index] = new_value
-        self.post_assignment(index, new_value)
+    def __setitem__(self, index, value):
+        self.pre_assignment(index, value)
+        self.data[index] = value
+        self.post_assignment(index, value)
 
     def __repr__(self):
-        return repr(self.list)
+        return repr(self.data)
 
     def __str__(self):
-        return str(self.list)
+        return str(self.data)
 
     def insert(self, index, value):
         self.pre_insertion(index, value)
-        self.list.insert(index, value)
+        self.data.insert(index, value)
         self.post_insertion(index, value)
 
     def pre_insertion(self, index, value):
-        self.scaled_play(index)
-        self.scaled_play(value)
+        # self.scaled_play(index)
+        # self.scaled_play(value)
+        pass
 
     def post_insertion(self, index, value):
         pass
 
     def pre_assignment(self, index, value):
+        """\
+        Defines the function that will be called when an assignment is made.
+        Defaults to playing the (scaled) note corresponding to the index,
+        followed by the value.
+
+        Note: This assumes you're sorting a list of (strictly) ints or floats.
+        If you're sorting strings or some other objects, you need to either
+        redefine this function to do casting beforehand or define some other
+        function for your tastes.
+        """
         self.scaled_play(index)
         self.scaled_play(value)
         # play_note(index)
@@ -145,71 +156,13 @@ def musical(sort_fn):
     """
     @wraps(sort_fn)
     def musical_sorter(sortable, *args, **kwargs):
-        s = MusicalSortable(sortable)
-        sorted = sort_fn(s, *args, **kwargs)
+        try:
+            sortable.pre_assignment
+        except AttributeError:
+            sortable = MusicalSortable(sortable)
+        sorted = sort_fn(sortable, *args, **kwargs)
         if sorted:
             # not an in place sort?
             return sorted
-        return s
-    return musical_sorter
-
-### Sample Sorts
-
-@musical
-def selection_sort(sortable):
-    for i in range(len(sortable)):
-        minimum = i
-        for j in range(i+1, len(sortable)):
-            if sortable[j] < sortable[minimum]:
-                minimum = j
-        sortable[i], sortable[minimum] = sortable[minimum], sortable[i]
-
-@musical
-def insertion_sort(sortable):
-    for i in range(1, len(sortable)):
-        key = sortable[i]
-        j = i - 1
-        while (j >= 0) and (sortable[j] > key):
-            sortable[j + 1] = sortable[j]
-            j -= 1
-        sortable[j + 1] = key
-
-def _merge(left, right):
-    merged = MusicalSortable()
-    while left and right:
-        if left[0] < right[0]:
-            merged.append(left.pop(0))
-        else:
-            merged.append(right.pop(0))
-    # one of them is empty, so just extend till they both are
-    merged.extend(left)
-    merged.extend(right)
-    return merged
-
-@musical
-def merge_sort(sortable):
-    if len(sortable) < 2:
         return sortable
-    middle = len(sortable) // 2
-    left, right = merge_sort(sortable[:middle]), merge_sort(sortable[middle:])
-    return _merge(left, right)
-
-def _partition(sortable, pivot=None):
-    raise NotImplementedError("Doesn't work yet!")
-    if not pivot:
-        pivot = len(sortable) // 2
-    if sortable[0] > sortable[pivot]:
-        sortable[0], sortable[pivot] = sortable[pivot], sortable[first]
-    if sortable[0] > sortable[-1]:
-        sortable[0], sortable[-1] = sortable[-1], sortable[0]
-    if sortable[pivot] > sortable[-1]:
-        sortable[pivot], sortable[-1] = sortable[-1], sortable[pivot]
-    sortable[pivot], sortable[0] = sortable[0], sortable[pivot]
-
-    while True:
-        break
-
-def quick_sort(sortable):
-    pivot = _partition(sortable)
-    quick_sort(sortable[:pivot])
-    quick_sort(sortable[pivot + 1:])
+    return musical_sorter
